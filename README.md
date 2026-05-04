@@ -1,6 +1,6 @@
 # Traffic Signs Detection App
 
-Simple Python application for traffic sign detection using Roboflow model.
+Web application for traffic sign detection using Roboflow model with visual bounding boxes.
 
 ## Setup
 
@@ -33,12 +33,29 @@ copy config.example.py config.py
 
 ## Run
 
+### Web Application (Recommended)
+```bash
+python web_app.py
+```
+Then open browser at: http://localhost:5000
+
+### Desktop Application (Legacy)
 ```bash
 python app.py
 ```
 
+## Features
+
+- Web-based interface
+- Image upload and preview
+- Real-time inference
+- Visual bounding boxes with labels
+- Confidence scores
+- Detailed detection results
+
 ## Usage
 
-1. Click "Select Image" to choose an image file
-2. Click "Run Inference" to detect traffic signs
-3. View results in the text area below
+1. Open web browser at http://localhost:5000
+2. Click "Choose Image" to select an image
+3. Click "Run Detection" to analyze
+4. View annotated image with bounding boxes and detection details
