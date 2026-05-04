@@ -37,6 +37,7 @@ class InferenceApp:
         )
         self.model_id = config.MODEL_ID
         self.current_image_path = None
+        self.photo_reference = None
         
         self._setup_ui()
     
@@ -97,10 +98,9 @@ class InferenceApp:
     def _display_image(self, image_path):
         image = Image.open(image_path)
         image.thumbnail((400, 400))
-        photo = ImageTk.PhotoImage(image)
+        self.photo_reference = ImageTk.PhotoImage(image)
         
-        self.image_label.config(image=photo, text="")
-        self.image_label.image = photo
+        self.image_label.config(image=self.photo_reference, text="")
     
     def _run_inference(self):
         if not self.current_image_path:
