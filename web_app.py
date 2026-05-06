@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify
 from PIL import Image, ImageDraw, ImageFont
 import requests
 import config

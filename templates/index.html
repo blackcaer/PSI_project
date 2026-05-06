@@ -14,7 +14,7 @@
 
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d3748;
             min-height: 100vh;
             padding: 20px;
         }
@@ -22,15 +22,15 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: #1a202c;
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         h1 {
             text-align: center;
-            color: #333;
+            color: #e2e8f0;
             margin-bottom: 30px;
         }
 
@@ -94,13 +94,18 @@
         }
 
         .predictions {
-            background: #f7fafc;
+            background: #2d3748;
             padding: 20px;
             border-radius: 5px;
         }
 
+        .predictions>h3 {
+            color: #e2e8f0;
+            margin-bottom: 15px;
+        }
+
         .prediction-item {
-            background: white;
+            background: #4a5568;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
@@ -108,12 +113,12 @@
         }
 
         .prediction-item h3 {
-            color: #667eea;
+            color: #90cdf4;
             margin-bottom: 5px;
         }
 
         .prediction-item p {
-            color: #666;
+            color: #e2e8f0;
             margin: 5px 0;
         }
 
@@ -121,10 +126,11 @@
             display: none;
             text-align: center;
             padding: 20px;
+            color: #e2e8f0;
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
+            border: 4px solid #4a5568;
             border-top: 4px solid #667eea;
             border-radius: 50%;
             width: 40px;
@@ -144,8 +150,8 @@
         }
 
         .error {
-            background: #fed7d7;
-            color: #c53030;
+            background: #fc8181;
+            color: #1a202c;
             padding: 15px;
             border-radius: 5px;
             margin-top: 20px;
@@ -155,7 +161,12 @@
         .file-name {
             display: inline-block;
             margin-left: 10px;
-            color: #666;
+            color: #cbd5e0;
+        }
+
+        .results-section h2 {
+            color: #e2e8f0;
+            margin-bottom: 20px;
         }
     </style>
 </head>
