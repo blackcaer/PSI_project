@@ -83,7 +83,7 @@ def upload():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if file:
+    if file and file.filename:
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
         
@@ -106,9 +106,10 @@ def upload():
         finally:
             if os.path.exists(filepath):
                 os.remove(filepath)
+    
+    return jsonify({'error': 'No file provided'}), 400
 
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
 
-# Made with Bob
