@@ -177,8 +177,8 @@
 
         <div class="upload-section">
             <div class="file-input-wrapper">
-                <label for="fileInput" class="btn btn-primary">Choose Image</label>
-                <input type="file" id="fileInput" accept="image/*">
+                <label for="fileInput" class="btn btn-primary">Choose file</label>
+                <input type="file" id="fileInput" accept="image/*,video/*">
             </div>
             <select id="backendSelect" class="btn btn-primary" style="margin-right:10px;">
                 <option value="local">Local YOLO</option>
@@ -246,7 +246,12 @@
                     throw new Error(data.error);
                 }
 
-                resultImage.src = 'data:image/png;base64,' + data.annotated_image;
+                if (data.annotated_image) {
+                    resultImage.src = 'data:image/png;base64,' + data.annotated_image;
+                    resultImage.style.display = 'block';
+                } else {
+                    resultImage.style.display = 'none';
+                }
 
                 predictions.innerHTML = `<h3>Detected ${data.count} object(s)</h3>`;
 

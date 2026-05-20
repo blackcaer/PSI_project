@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 import config
 import os
+from pathlib import Path
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from services.inference_client import InferenceClient
 from services.local_inference import LocalInferenceClient
@@ -8,9 +10,14 @@ from utils.image_utils import draw_predictions
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(_error):
+    return jsonify({'error': 'File too large. Maximum upload size is 200 MB.'}), 413
 
 local_client = None
 remote_client = InferenceClient(
@@ -51,12 +58,15 @@ def upload():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
         backend = request.form.get('backend', config.INFERENCE_BACKEND)
+        is_video = Path(filepath).suffix.lower() in LocalInferenceClient.VIDEO_EXTENSIONS
         
         try:
             result = get_client(backend).infer(filepath, config.MODEL_ID)
             
             predictions = result.get('predictions', [])
-            annotated_image = draw_predictions(filepath, predictions)
+            annotated_image = None
+            if not is_video:
+                annotated_image = draw_predictions(filepath, predictions)
             
             return jsonify({
                 'success': True,
