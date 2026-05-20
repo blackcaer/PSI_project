@@ -1,3 +1,5 @@
 flask
 requests
 pillow
+ultralytics
+opencv-python-headless
