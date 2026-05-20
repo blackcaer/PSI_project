@@ -3,6 +3,7 @@ import config
 import os
 
 from services.inference_client import InferenceClient
+from services.local_inference import LocalInferenceClient
 from utils.image_utils import draw_predictions
 
 app = Flask(__name__)
@@ -11,11 +12,25 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-
-client = InferenceClient(
+local_client = None
+remote_client = InferenceClient(
     api_url=config.API_URL,
     api_key=config.API_KEY
 )
+
+
+def get_client(backend):
+    global local_client
+    if backend == 'remote':
+        return remote_client
+
+    if local_client is None:
+        local_client = LocalInferenceClient(
+            model_path=config.LOCAL_MODEL_PATH,
+            confidence=config.YOLO_CONFIDENCE,
+            image_size=config.YOLO_IMAGE_SIZE
+        )
+    return local_client
 
 
 @app.route('/')
@@ -35,9 +50,10 @@ def upload():
     if file and file.filename:
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
+        backend = request.form.get('backend', config.INFERENCE_BACKEND)
         
         try:
-            result = client.infer(filepath, config.MODEL_ID)
+            result = get_client(backend).infer(filepath, config.MODEL_ID)
             
             predictions = result.get('predictions', [])
             annotated_image = draw_predictions(filepath, predictions)

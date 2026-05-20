@@ -180,6 +180,10 @@
                 <label for="fileInput" class="btn btn-primary">Choose Image</label>
                 <input type="file" id="fileInput" accept="image/*">
             </div>
+            <select id="backendSelect" class="btn btn-primary" style="margin-right:10px;">
+                <option value="local">Local YOLO</option>
+                <option value="remote">Roboflow API</option>
+            </select>
             <button id="uploadBtn" class="btn btn-success" disabled>Run Detection</button>
             <span class="file-name" id="fileName"></span>
         </div>
@@ -202,6 +206,7 @@
 
     <script>
         const fileInput = document.getElementById('fileInput');
+        const backendSelect = document.getElementById('backendSelect');
         const uploadBtn = document.getElementById('uploadBtn');
         const fileName = document.getElementById('fileName');
         const loading = document.getElementById('loading');
@@ -223,6 +228,7 @@
 
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('backend', backendSelect.value);
 
             loading.style.display = 'block';
             error.style.display = 'none';
