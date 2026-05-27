@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import cv2
 
-from ultralytics import YOLO
+from ultralytics import YOLO  # type: ignore
 
 
 class LocalInferenceClient:
@@ -92,21 +92,22 @@ class LocalInferenceClient:
 
         predictions = []
         for result in results:
-            for box in result.boxes:
-                xywh = box.xywh[0].tolist()
-                cls = int(box.cls[0].item()) if hasattr(box.cls[0], "item") else int(box.cls[0])
-                conf = float(box.conf[0].item()) if hasattr(box.conf[0], "item") else float(box.conf[0])
-                prediction = {
-                    'x': float(xywh[0]),
-                    'y': float(xywh[1]),
-                    'width': float(xywh[2]),
-                    'height': float(xywh[3]),
-                    'confidence': conf,
-                    'class': result.names.get(cls, str(cls))
-                }
-                if is_video:
-                    prediction['frame'] = 0
-                predictions.append(prediction)
+            if result.boxes is not None:
+                for box in result.boxes:
+                    xywh = box.xywh[0].tolist()
+                    cls = int(box.cls[0].item()) if hasattr(box.cls[0], "item") else int(box.cls[0])
+                    conf = float(box.conf[0].item()) if hasattr(box.conf[0], "item") else float(box.conf[0])
+                    prediction = {
+                        'x': float(xywh[0]),
+                        'y': float(xywh[1]),
+                        'width': float(xywh[2]),
+                        'height': float(xywh[3]),
+                        'confidence': conf,
+                        'class': result.names.get(cls, str(cls))
+                    }
+                    if is_video:
+                        prediction['frame'] = 0
+                    predictions.append(prediction)
 
         return {
             'predictions': predictions,
