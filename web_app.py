@@ -47,42 +47,51 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    if 'file' not in request.files:
+    if 'files' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
-    file = request.files['file']
-    if file.filename == '':
+    files = request.files.getlist('files')
+    if not files or all(f.filename == '' for f in files):
         return jsonify({'error': 'No file selected'}), 400
     
-    if file and file.filename:
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filepath)
-        backend = request.form.get('backend', config.INFERENCE_BACKEND)
-        is_video = Path(filepath).suffix.lower() in LocalInferenceClient.VIDEO_EXTENSIONS
-        
-        try:
-            result = get_client(backend).infer(filepath, config.MODEL_ID)
-            
-            predictions = result.get('predictions', [])
-            annotated_image = None
-            if not is_video:
-                annotated_image = draw_predictions(filepath, predictions)
-            
-            return jsonify({
-                'success': True,
-                'predictions': predictions,
-                'annotated_image': annotated_image,
-                'count': len(predictions)
-            })
-        
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-        
-        finally:
-            if os.path.exists(filepath):
-                os.remove(filepath)
+    backend = request.form.get('backend', config.INFERENCE_BACKEND)
+    results = []
     
-    return jsonify({'error': 'No file provided'}), 400
+    for file in files:
+        if file and file.filename:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(filepath)
+            is_video = Path(filepath).suffix.lower() in LocalInferenceClient.VIDEO_EXTENSIONS
+            
+            try:
+                result = get_client(backend).infer(filepath, config.MODEL_ID)
+                
+                predictions = result.get('predictions', [])
+                annotated_image = None
+                if not is_video:
+                    annotated_image = draw_predictions(filepath, predictions)
+                
+                results.append({
+                    'filename': file.filename,
+                    'predictions': predictions,
+                    'annotated_image': annotated_image,
+                    'count': len(predictions)
+                })
+            
+            except Exception as e:
+                results.append({
+                    'filename': file.filename,
+                    'error': str(e)
+                })
+            
+            finally:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+    
+    return jsonify({
+        'success': True,
+        'results': results
+    })
 
 
 if __name__ == '__main__':

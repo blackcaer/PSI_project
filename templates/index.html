@@ -49,6 +49,38 @@
             display: none;
         }
 
+        .navigation {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .nav-btn:hover {
+            background: #5568d3;
+        }
+
+        .nav-btn:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+        }
+
+        .image-counter {
+            color: #e2e8f0;
+            font-size: 18px;
+            margin: 0 20px;
+        }
+
         .btn {
             padding: 12px 30px;
             font-size: 16px;
@@ -177,8 +209,8 @@
 
         <div class="upload-section">
             <div class="file-input-wrapper">
-                <label for="fileInput" class="btn btn-primary">Choose file</label>
-                <input type="file" id="fileInput" accept="image/*,video/*">
+                <label for="fileInput" class="btn btn-primary">Choose files</label>
+                <input type="file" id="fileInput" accept="image/*,video/*" multiple>
             </div>
             <select id="backendSelect" class="btn btn-primary" style="margin-right:10px;">
                 <option value="local">Local YOLO</option>
@@ -197,6 +229,11 @@
 
         <div class="results-section" id="results">
             <h2>Results</h2>
+            <div class="navigation" id="navigation">
+                <button class="nav-btn" id="prevBtn">◀</button>
+                <span class="image-counter" id="imageCounter"></span>
+                <button class="nav-btn" id="nextBtn">▶</button>
+            </div>
             <div class="image-container">
                 <img id="resultImage" src="" alt="Annotated Image">
             </div>
@@ -214,20 +251,84 @@
         const results = document.getElementById('results');
         const resultImage = document.getElementById('resultImage');
         const predictions = document.getElementById('predictions');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const imageCounter = document.getElementById('imageCounter');
+
+        let allResults = [];
+        let currentIndex = 0;
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                fileName.textContent = e.target.files[0].name;
+                const count = e.target.files.length;
+                fileName.textContent = count === 1 ? e.target.files[0].name : `${count} files selected`;
                 uploadBtn.disabled = false;
             }
         });
 
+        function displayResult(index) {
+            const result = allResults[index];
+
+            if (result.error) {
+                error.textContent = `Error processing ${result.filename}: ${result.error}`;
+                error.style.display = 'block';
+                resultImage.style.display = 'none';
+                predictions.innerHTML = '';
+                return;
+            }
+
+            error.style.display = 'none';
+
+            if (result.annotated_image) {
+                resultImage.src = 'data:image/png;base64,' + result.annotated_image;
+                resultImage.style.display = 'block';
+            } else {
+                resultImage.style.display = 'none';
+            }
+
+            predictions.innerHTML = `<h3>${result.filename} - Detected ${result.count} object(s)</h3>`;
+
+            result.predictions.forEach((pred, idx) => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <h3>Detection ${idx + 1}</h3>
+                    <p><strong>Class:</strong> ${pred.class}</p>
+                    <p><strong>Confidence:</strong> ${(pred.confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Position:</strong> x=${pred.x.toFixed(1)}, y=${pred.y.toFixed(1)}</p>
+                    <p><strong>Size:</strong> ${pred.width.toFixed(1)}x${pred.height.toFixed(1)}</p>
+                `;
+                predictions.appendChild(item);
+            });
+
+            imageCounter.textContent = `${index + 1} / ${allResults.length}`;
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === allResults.length - 1;
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                displayResult(currentIndex);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < allResults.length - 1) {
+                currentIndex++;
+                displayResult(currentIndex);
+            }
+        });
+
         uploadBtn.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) return;
+            const files = fileInput.files;
+            if (files.length === 0) return;
 
             const formData = new FormData();
-            formData.append('file', file);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
             formData.append('backend', backendSelect.value);
 
             loading.style.display = 'block';
@@ -242,32 +343,20 @@
 
                 const data = await response.json();
 
-                if (data.error) {
-                    throw new Error(data.error);
+                if (!data.success) {
+                    throw new Error('Upload failed');
                 }
 
-                if (data.annotated_image) {
-                    resultImage.src = 'data:image/png;base64,' + data.annotated_image;
-                    resultImage.style.display = 'block';
+                allResults = data.results;
+                currentIndex = 0;
+
+                if (allResults.length > 1) {
+                    navigation.style.display = 'block';
                 } else {
-                    resultImage.style.display = 'none';
+                    navigation.style.display = 'none';
                 }
 
-                predictions.innerHTML = `<h3>Detected ${data.count} object(s)</h3>`;
-
-                data.predictions.forEach((pred, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'prediction-item';
-                    item.innerHTML = `
-                        <h3>Detection ${index + 1}</h3>
-                        <p><strong>Class:</strong> ${pred.class}</p>
-                        <p><strong>Confidence:</strong> ${(pred.confidence * 100).toFixed(2)}%</p>
-                        <p><strong>Position:</strong> x=${pred.x.toFixed(1)}, y=${pred.y.toFixed(1)}</p>
-                        <p><strong>Size:</strong> ${pred.width.toFixed(1)}x${pred.height.toFixed(1)}</p>
-                    `;
-                    predictions.appendChild(item);
-                });
-
+                displayResult(currentIndex);
                 results.style.display = 'block';
 
             } catch (err) {
