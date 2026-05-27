@@ -335,7 +335,7 @@
                 videoContainer.style.display = 'none';
             }
 
-            predictions.innerHTML = `<h3>${result.filename} - Detected ${result.count} object(s)</h3>`;
+            predictions.innerHTML = `<h3>${result.filename} - Detected ${result.count} object(s) total</h3>`;
 
             result.predictions.forEach((pred, idx) => {
                 const item = document.createElement('div');
