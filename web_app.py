@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import config
 import os
 from pathlib import Path
 from werkzeug.exceptions import RequestEntityTooLarge
+import uuid
 
 from services.inference_client import InferenceClient
 from services.local_inference import LocalInferenceClient
@@ -13,6 +14,8 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+processed_videos = {}
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -68,13 +71,25 @@ def upload():
                 
                 predictions = result.get('predictions', [])
                 annotated_image = None
-                if not is_video:
+                video_id = None
+                
+                if is_video:
+                    output_path = result.get('output_path')
+                    if output_path and os.path.exists(output_path):
+                        video_id = str(uuid.uuid4())
+                        processed_videos[video_id] = output_path
+                        print(f"Video saved: {file.filename} -> {output_path} (ID: {video_id})")
+                    else:
+                        print(f"Video output not found for {file.filename}, output_path: {output_path}")
+                else:
                     annotated_image = draw_predictions(filepath, predictions)
                 
                 results.append({
                     'filename': file.filename,
                     'predictions': predictions,
                     'annotated_image': annotated_image,
+                    'video_id': video_id,
+                    'is_video': is_video,
                     'count': len(predictions)
                 })
             
@@ -92,6 +107,63 @@ def upload():
         'success': True,
         'results': results
     })
+
+
+@app.route('/video/<video_id>')
+def serve_video(video_id):
+    video_path = processed_videos.get(video_id)
+    if not video_path or not os.path.exists(video_path):
+        return jsonify({'error': 'Video not found'}), 404
+    
+    ext = Path(video_path).suffix.lower()
+    mimetype_map = {
+        '.mp4': 'video/mp4',
+        '.avi': 'video/x-msvideo',
+        '.mov': 'video/quicktime',
+        '.mkv': 'video/x-matroska',
+        '.webm': 'video/webm',
+        '.flv': 'video/x-flv',
+        '.wmv': 'video/x-ms-wmv'
+    }
+    mimetype = mimetype_map.get(ext, 'video/mp4')
+    
+    file_size = os.path.getsize(video_path)
+    
+    range_header = request.headers.get('Range')
+    if not range_header:
+        return send_file(
+            video_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            conditional=True
+        )
+    
+    byte_range = range_header.replace('bytes=', '').split('-')
+    start = int(byte_range[0]) if byte_range[0] else 0
+    end = int(byte_range[1]) if len(byte_range) > 1 and byte_range[1] else file_size - 1
+    
+    if start >= file_size or end >= file_size:
+        return 'Requested Range Not Satisfiable', 416
+    
+    length = end - start + 1
+    
+    with open(video_path, 'rb') as f:
+        f.seek(start)
+        data = f.read(length)
+    
+    from flask import Response
+    response = Response(
+        data,
+        206,
+        mimetype=mimetype,
+        direct_passthrough=True
+    )
+    response.headers.add('Content-Range', f'bytes {start}-{end}/{file_size}')
+    response.headers.add('Accept-Ranges', 'bytes')
+    response.headers.add('Content-Length', str(length))
+    response.headers.add('Cache-Control', 'no-cache')
+    
+    return response
 
 
 if __name__ == '__main__':

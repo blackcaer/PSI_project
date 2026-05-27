@@ -125,6 +125,18 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
+        .video-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .video-container video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
         .predictions {
             background: #2d3748;
             padding: 20px;
@@ -234,8 +246,13 @@
                 <span class="image-counter" id="imageCounter"></span>
                 <button class="nav-btn" id="nextBtn">▶</button>
             </div>
-            <div class="image-container">
+            <div class="image-container" id="imageContainer">
                 <img id="resultImage" src="" alt="Annotated Image">
+            </div>
+            <div class="video-container" id="videoContainer" style="display: none;">
+                <video id="resultVideo" controls preload="metadata" style="width: 100%; max-width: 800px;">
+                    Your browser does not support the video tag.
+                </video>
             </div>
             <div class="predictions" id="predictions"></div>
         </div>
@@ -250,6 +267,9 @@
         const error = document.getElementById('error');
         const results = document.getElementById('results');
         const resultImage = document.getElementById('resultImage');
+        const imageContainer = document.getElementById('imageContainer');
+        const videoContainer = document.getElementById('videoContainer');
+        const resultVideo = document.getElementById('resultVideo');
         const predictions = document.getElementById('predictions');
         const navigation = document.getElementById('navigation');
         const prevBtn = document.getElementById('prevBtn');
@@ -273,18 +293,46 @@
             if (result.error) {
                 error.textContent = `Error processing ${result.filename}: ${result.error}`;
                 error.style.display = 'block';
-                resultImage.style.display = 'none';
+                imageContainer.style.display = 'none';
+                videoContainer.style.display = 'none';
                 predictions.innerHTML = '';
                 return;
             }
 
             error.style.display = 'none';
 
-            if (result.annotated_image) {
+            if (result.is_video && result.video_id) {
+                videoContainer.style.display = 'block';
+                imageContainer.style.display = 'none';
+
+                resultVideo.pause();
+                resultVideo.removeAttribute('src');
+                resultVideo.load();
+
+                resultVideo.src = `/video/${result.video_id}`;
+
+                resultVideo.onerror = function (e) {
+                    console.error('Video error:', e);
+                    error.textContent = `Error loading video: ${result.filename}`;
+                    error.style.display = 'block';
+                };
+
+                resultVideo.onloadedmetadata = function () {
+                    console.log('Video loaded successfully:', result.filename);
+                    console.log('Duration:', resultVideo.duration, 'seconds');
+                };
+
+                resultVideo.load();
+                resultVideo.play().catch(e => {
+                    console.log('Autoplay prevented:', e);
+                });
+            } else if (result.annotated_image) {
+                imageContainer.style.display = 'block';
+                videoContainer.style.display = 'none';
                 resultImage.src = 'data:image/png;base64,' + result.annotated_image;
-                resultImage.style.display = 'block';
             } else {
-                resultImage.style.display = 'none';
+                imageContainer.style.display = 'none';
+                videoContainer.style.display = 'none';
             }
 
             predictions.innerHTML = `<h3>${result.filename} - Detected ${result.count} object(s)</h3>`;
